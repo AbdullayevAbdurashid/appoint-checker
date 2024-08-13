@@ -6,14 +6,24 @@ const telegramToken = '6051605197:AAGsf2rHujh_8W8GAEayNSRnyliGnNFH18A';
 const bot = new TelegramBot(telegramToken);
 const userIds = ["1215214465"];
 
-function sendMessageToAllUsers(message) {
-  userIds.forEach(async (userId) => {
+async function sendMessageToAllUsers(message) {
+  for (const userId of userIds) {
     try {
       await bot.sendMessage(userId, message);
     } catch (error) {
       console.error(`Failed to send message to ${userId}:`, error);
     }
-  });
+  }
+}
+
+async function sendPhotoToAllUsers(photoPath, caption) {
+  for (const userId of userIds) {
+    try {
+      await bot.sendPhoto(userId, photoPath, { caption });
+    } catch (error) {
+      console.error(`Failed to send photo to ${userId}:`, error);
+    }
+  }
 }
 
 // Function to add a delay
@@ -23,7 +33,7 @@ async function delay(ms) {
 
 async function checkAppointmentAvailability() {
   try {
-    const browser = await puppeteer.launch({ headless: false });
+    const browser = await puppeteer.launch({ headless: true });
     const page = await browser.newPage();
     await page.goto('https://appointment.bmeia.gv.at/');
 
@@ -64,13 +74,19 @@ async function checkAppointmentAvailability() {
       const errorElement = document.querySelector('.message-error');
       return errorElement ? errorElement.textContent.trim() : '';
     });
+
     if (errorMessage.includes('К сожалению, на выбранное Вами время на данный момент невозможно записаться')) {
-      sendMessageToAllUsers('Just checked for appointments. There is not a single one :(');
+      await sendMessageToAllUsers('Just checked for appointments. There is not a single one :(');
     } else {
-      sendMessageToAllUsers('Appointments are available! Finally, check the website for details.');
+      await sendMessageToAllUsers('Appointments are available! Finally, check the website for details.');
     }
 
-    await page.screenshot({ path: 'debug_screenshot.png' });
+    const screenshotPath = 'debug_screenshot.png';
+    await page.screenshot({ path: screenshotPath });
+
+    // Send the screenshot
+    await sendPhotoToAllUsers(screenshotPath, 'Here is the latest screenshot from the appointment check.');
+
     await browser.close();
   } catch (error) {
     console.error('Error:', error);
