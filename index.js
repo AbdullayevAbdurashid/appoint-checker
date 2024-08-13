@@ -1,9 +1,19 @@
 const puppeteer = require('puppeteer');
-// const TelegramBot = require('node-telegram-bot-api'); // Assuming you have TelegramBot installed
+const TelegramBot = require('node-telegram-bot-api'); // Assuming you have TelegramBot installed
 
 // Replace with your Telegram bot token
-const telegramToken = 'YOUR_TELEGRAM_BOT_TOKEN';
-const TELEGRAM_USER_ID = 'YOUR_TELEGRAM_USER_ID'; // Replace with your Telegram user ID
+const telegramToken = '6051605197:AAGsf2rHujh_8W8GAEayNSRnyliGnNFH18A';
+const bot = new TelegramBot(telegramToken);
+const userIds = ["1215214465"];
+function sendMessageToAllUsers(message) {
+  userIds.forEach(async (userId) => {
+    try {
+      await bot.sendMessage(userId, message);
+    } catch (error) {
+      console.error(`Failed to send message to ${userId}:`, error);
+    }
+  });
+}
 
 // Function to add a delay
 async function delay(ms) {
@@ -12,7 +22,7 @@ async function delay(ms) {
 
 async function checkAppointmentAvailability() {
   try {
-    const browser = await puppeteer.launch({ headless: false }); // Set headless to false for debugging
+    const browser = await puppeteer.launch({ headless: true }); // Set headless to false for debugging
     const page = await browser.newPage();
     await page.goto('https://appointment.bmeia.gv.at/');
 
@@ -21,14 +31,14 @@ async function checkAppointmentAvailability() {
     
     // Select "Maskau" from the dropdown
     await page.select('#Office', 'MOSKAU'); 
-    await delay(1000); // Wait for 2 seconds
+    await delay(500); // Wait for 2 seconds
 
     await page.click('input[name="Command"]');
-    await delay(1000); // Wait for 2 seconds
+    await delay(500); // Wait for 2 seconds
 
     await page.waitForSelector('#CalendarId');
     await page.select('#CalendarId', '40044915');
-    await delay(1000); // Wait for 2 seconds
+    await delay(500); // Wait for 2 seconds
 
     await page.click('input[name="Command"]');
     await delay(2000); // Wait for 2 seconds
@@ -48,16 +58,13 @@ async function checkAppointmentAvailability() {
       const errorElement = document.querySelector('.message-error');
       return errorElement ? errorElement.textContent.trim() : '';
     });
-
-    if (errorMessage.includes('К сожалению, на выбранное Вами время на данный момент невозможно записаться    ')) {
-      console.log('No appointments available.');
+    if (errorMessage.includes('К сожалению, на выбранное Вами время на данный момент невозможно записаться')) {
+      sendMessageToAllUsers('Just checked for appointments. There is not a single one :(');
     } else {
-      // Send notification via Telegram bot if appointments are available
-      // const bot = new TelegramBot(telegramToken);
-      // await bot.sendMessage(TELEGRAM_USER_ID, 'Appointments are available! Check the website for details.'); // Replace with your user ID
+      sendMessageToAllUsers('Appointments are available! Finally, check the website for details.');
     }
 
-    // await browser.close();
+    await browser.close();
   } catch (error) {
     console.error('Error:', error);
   }
